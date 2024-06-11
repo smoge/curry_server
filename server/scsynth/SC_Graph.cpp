@@ -34,6 +34,8 @@
 #include "SC_Prototypes.h"
 #include "SC_Errors.h"
 #include "Unroll.h"
+#include <algorithm>
+#include <iterator>
 
 void Unit_ChooseMulAddFunc(Unit* unit);
 
@@ -51,22 +53,17 @@ void Graph_NullFirstCalc(Graph* inGraph);
 void Graph_Dtor(Graph* inGraph) {
     // scprintf("->Graph_Dtor %d\n", inGraph->mNode.mID);
     World* world = inGraph->mNode.mWorld;
-    uint32 numUnits = inGraph->mNumUnits;
+    uint32_t numUnits = inGraph->mNumUnits;
     Unit** graphUnits = inGraph->mUnits;
-    if (inGraph->mNode.mCalcFunc != (NodeCalcFunc)Graph_FirstCalc
-        && inGraph->mNode.mCalcFunc != (NodeCalcFunc)(Graph_NullFirstCalc)) {
-        // the above test insures that dtors are not called if ctors have not been called.
-        for (uint32 i = 0; i < numUnits; ++i) {
-            Unit* unit = graphUnits[i];
-            UnitDtorFunc dtor = unit->mUnitDef->mUnitDtorFunc;
-            if (dtor)
-                (dtor)(unit);
-        }
+    if (inGraph->mNode.mCalcFunc != reinterpret_cast<NodeCalcFunc>(Graph_FirstCalc)
+        && inGraph->mNode.mCalcFunc != reinterpret_cast<NodeCalcFunc>(Graph_NullFirstCalc)) {
+        std::for_each(graphUnits, graphUnits + numUnits, [](Unit* unit) {
+            if (auto dtor = unit->mUnitDef->mUnitDtorFunc) {
+                dtor(unit);
+            }
+        });
     }
-    // free queued Unit commands
-    // AFAICT this can only happen if a Graph is created, Unit commands are sent and the Graph
-    // is deleted all at the same time stamp.
-    QueuedCmd* cmd = (QueuedCmd*)inGraph->mPrivate;
+    QueuedCmd* cmd = static_cast<QueuedCmd*>(inGraph->mPrivate);
     while (cmd) {
         QueuedCmd* next = cmd->mNext;
         World_Free(inGraph->mNode.mWorld, cmd);
@@ -500,14 +497,14 @@ void Graph_FirstCalc(Graph* inGraph) {
     // scprintf("->Graph_FirstCalc\n");
     uint32 numUnits = inGraph->mNumUnits;
     Unit** units = inGraph->mUnits;
-    for (uint32 i = 0; i < numUnits; ++i) {
-        Unit* unit = units[i];
+    std::for_each(units, units + numUnits, [](Unit* unit) {
         // call constructor
         (*unit->mUnitDef->mUnitCtorFunc)(unit);
-    }
+    });
+
     // scprintf("<-Graph_FirstCalc\n");
 
-    inGraph->mNode.mCalcFunc = (NodeCalcFunc)&Graph_Calc;
+    inGraph->mNode.mCalcFunc = reinterpret_cast<NodeCalcFunc>(&Graph_Calc);
     // after setting the calc function!
     Graph_DispatchUnitCmds(inGraph);
     // now do actual graph calculation
