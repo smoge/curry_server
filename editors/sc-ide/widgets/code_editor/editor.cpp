@@ -59,8 +59,6 @@ GenericCodeEditor::GenericCodeEditor(Document* doc, QWidget* parent):
 
     setFrameShape(QFrame::NoFrame);
 
-    viewport()->setAttribute(Qt::WA_MacNoClickThrough, true);
-
     mLineIndicator = new LineIndicator(this);
     mLineIndicator->move(contentsRect().topLeft());
 
@@ -645,7 +643,7 @@ void GenericCodeEditor::mousePressEvent(QMouseEvent* e) {
         case Qt::RightButton:
             button = 1;
             break;
-        case Qt::MidButton:
+        case Qt::MiddleButton:
             button = 2;
             break;
         default:
@@ -654,8 +652,13 @@ void GenericCodeEditor::mousePressEvent(QMouseEvent* e) {
 
         Main::evaluateCodeIfCompiled(QStringLiteral("Document.findByQUuid(\'%1\').mouseDown(%2, %3, %4, %5, 1)")
                                          .arg(mDoc->id().constData())
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
                                          .arg(e->x())
                                          .arg(e->y())
+#else
+                                         .arg(e->position().x())
+                                         .arg(e->position().y())
+#endif
                                          .arg(e->modifiers())
                                          .arg(button),
                                      true);
@@ -674,7 +677,7 @@ void GenericCodeEditor::mouseDoubleClickEvent(QMouseEvent* e) {
         case Qt::RightButton:
             button = 1;
             break;
-        case Qt::MidButton:
+        case Qt::MiddleButton:
             button = 2;
             break;
         default:
@@ -683,8 +686,13 @@ void GenericCodeEditor::mouseDoubleClickEvent(QMouseEvent* e) {
 
         Main::evaluateCodeIfCompiled(QStringLiteral("Document.findByQUuid(\'%1\').mouseDown(%2, %3, %4, %5, 2)")
                                          .arg(mDoc->id().constData())
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
                                          .arg(e->x())
                                          .arg(e->y())
+#else
+                                         .arg(e->position().x())
+                                         .arg(e->position().y())
+#endif
                                          .arg(e->modifiers())
                                          .arg(button),
                                      true);
@@ -703,7 +711,7 @@ void GenericCodeEditor::mouseReleaseEvent(QMouseEvent* e) {
         case Qt::RightButton:
             button = 1;
             break;
-        case Qt::MidButton:
+        case Qt::MiddleButton:
             button = 2;
             break;
         default:
@@ -712,8 +720,13 @@ void GenericCodeEditor::mouseReleaseEvent(QMouseEvent* e) {
 
         Main::evaluateCodeIfCompiled(QStringLiteral("Document.findByQUuid(\'%1\').mouseUp(%2, %3, %4, %5)")
                                          .arg(mDoc->id().constData())
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
                                          .arg(e->x())
                                          .arg(e->y())
+#else
+                                         .arg(e->position().x())
+                                         .arg(e->position().y())
+#endif
                                          .arg(e->modifiers())
                                          .arg(button),
                                      true);
@@ -730,8 +743,9 @@ void GenericCodeEditor::wheelEvent(QWheelEvent* e) {
 
     // So rather just forward the event without modifiers.
 
-    QWheelEvent modifiedEvent(e->pos(), e->globalPos(), e->delta(), e->buttons(), 0, e->orientation());
-    QPlainTextEdit::wheelEvent(&modifiedEvent);
+    e->setModifiers(Qt::NoModifier);
+
+    QPlainTextEdit::wheelEvent(e);
     return;
 
 #if 0

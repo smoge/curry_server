@@ -103,9 +103,13 @@ if (${CMAKE_COMPILER_IS_GNUCXX})
     )
 
     add_compile_options(
+        -Werror=return-type      # Error out if function definitions lack a return type
+        # GCC 14 has made -Wincompatible-pointer-types an error by default and as a
+        # consequence, some external C would fail to compile. This is a temporary fix!
+        # Ideally, the affected dependencies should be fixed upstream.
+        -Wno-error=incompatible-pointer-types
         -fschedule-insns2        # Optimize instruction scheduling
         -fomit-frame-pointer     # Optimize by omitting the frame pointer where possible
-        -Wreturn-type            # Warn if function definitions lack a return type
         -fno-math-errno          # Optimize math functions by not setting errno
         -fno-signaling-nans      # Assume no signaling NaNs for better optimization
         -fsigned-zeros           # Maintain distinction between -0.0 and +0.0
@@ -328,9 +332,6 @@ if(SYSTEM_BOOST)
         add_library(boost_system_lib SHARED IMPORTED)
         set_property(TARGET boost_system_lib PROPERTY IMPORTED_LOCATION
           ${Boost_SYSTEM_LIBRARY})
-        add_library(boost_filesystem_lib SHARED IMPORTED)
-        set_property(TARGET boost_filesystem_lib PROPERTY IMPORTED_LOCATION
-          ${Boost_FILESYSTEM_LIBRARY})
         add_library(boost_program_options_lib SHARED IMPORTED)
         set_property(TARGET boost_program_options_lib PROPERTY
           IMPORTED_LOCATION ${Boost_PROGRAM_OPTIONS_LIBRARY})
